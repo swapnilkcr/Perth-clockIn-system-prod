@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Allocate Jobs</title>
+    <link rel="stylesheet" href="Style.css">
+    <link rel="stylesheet" href="Allocate_jobs.css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="icon" href="./logo.JPG" type="image/x-icon">
+
+    <script src="clock.js"></script>
+    <style>
+        a#openDeleteStaffModal {
+            color: black;
+        }
+
+        .navbar {
+            background-color: lightgray;
+            padding: 10px 30px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            animation: slideFadeIn 0.8s ease-out;
+        }
+
+        .navbar1 {
+            list-style: none;
+            display: flex;
+            gap: 20px;
+            margin: 0;
+            padding: 0;
+        }
+
+        .navbar1 li {
+            display: inline-block;
+        }
+
+        .navbar1 li a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 8px 16px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .navbar1 li a:hover {
+            border-radius: 6px;
+            background-color: #f39c12;
+            color: white !important;
+        }
+
+        /* Modal container */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            padding-top: 100px;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        /* Modal content box */
+        .modal-content {
+            background-color: #fff;
+            margin: auto;
+            padding: 20px 30px;
+            border: 1px solid #888;
+            width: 400px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            position: relative;
+            text-align: center;
+        }
+
+        /* Close button (X) */
+        .modal .close {
+            color: #aaa;
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .modal .close:hover,
+        .modal .close:focus {
+            color: #000;
+        }
+
+        /* Modal buttons */
+        .modal-content button {
+            padding: 8px 16px;
+            margin: 10px 5px 0 5px;
+            font-size: 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .modal-content button:first-of-type {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .modal-content button:last-of-type {
+            background-color: #ccc;
+            color: black;
+        }
+
+        /* Dropdown styling */
+        #staffDropdown {
+            padding: 6px;
+            width: 80%;
+            font-size: 14px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+
+        /* Backorder highlight */
+        .job-card.backorder {
+            background-color: #CCCCFF !important;
+            /* nice visible yellow */
+            border: 2px solid #CCCCFF !important;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <img src="logo-minew.png" alt="" class="imglogo">
+        <h1>Allocate Jobs</h1>
+        <a href="layout.html">← Back to Home</a>
+    </header>
+    <div class="navbar">
+        <nav class="navbar1">
+            <a href="layout.html">← Back to Home</a>
+            <li><a href="#" id="openDeleteStaffModal">Delete Staff</a></li>
+            <a href="PN_DATA.html">Scheduled Jobs</a>
+        </nav>
+    </div>
+    <main>
+        <div class="container">
+            <div class="card-container">
+                <div class="selection-card">
+                    <h3>Available Jobs</h3>
+                    <input type="text" id="jobSearchInput" placeholder="Search jobs..."
+                        style="width: 100%; padding: 8px; margin-bottom: 10px; font-size: 16px;">
+
+                    <div class="card-grid" id="jobs-grid">
+                        <!-- Jobs will be populated here -->
+                    </div>
+                </div>
+
+                <div class="selection-card">
+                    <h3>Available Staff</h3>
+                    <div class="card-grid" id="staff-grid">
+                        <!-- Staff will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="allcbtn">
+                <button class="assign-button" onclick="assignSelected()">Assign Selected</button>
+                <button class="backorder-button" onclick="toggleBackorder()">Backorder</button>
+            </div>
+
+            <!-- Delete Staff Modal -->
+            <div id="deleteStaffModal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <span class="close" onclick="closeDeleteModal()">&times;</span>
+                    <h3>Delete Staff</h3>
+                    <label for="staffDropdown">Select staff to delete:</label>
+                    <select id="staffDropdown"></select>
+                    <br><br>
+                    <button onclick="confirmDeleteStaff()">Delete</button>
+                    <button onclick="closeDeleteModal()">Cancel</button>
+                </div>
+            </div>
+    </main>
+
+    <script>
+        // When "Backorder" button is clicked, toggle backorder for selected jobs (in DB)
+        async function toggleBackorder() {
+            const selectedJobs = Array.from(document.querySelectorAll('.job-card.selected'));
+            if (selectedJobs.length === 0) {
+                alert('Please select at least one job to backorder/remove from backorder.');
+                return;
+            }
+            // Determine if all selected jobs are already backordered by checking class
+            const allBackordered = selectedJobs.every(card => card.classList.contains('backorder'));
+            const jobIds = selectedJobs.map(card => card.dataset.id);
+
+            try {
+                const res = await fetch(`${backendBaseUrl}/set-backorder`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        jobIds: jobIds,
+                        backorder: !allBackordered
+                    })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    loadSelectionData(); // reloads jobs and their backorder state
+                } else {
+                    alert(result.error || 'Failed to update backorder status');
+                }
+            } catch (err) {
+                alert('Request failed: ' + err.message);
+            }
+        }
+
+        document.getElementById('openDeleteStaffModal').addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                const res = await fetch(`${backendBaseUrl}/get-staff`);
+                const data = await res.json();
+                const dropdown = document.getElementById('staffDropdown');
+                dropdown.innerHTML = '';  // Clear previous
+
+                data.staff.forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    dropdown.appendChild(option);
+                });
+
+                document.getElementById('deleteStaffModal').style.display = 'block';
+            } catch (err) {
+                alert('Error loading staff list');
+            }
+        });
+
+        function closeDeleteModal() {
+            document.getElementById('deleteStaffModal').style.display = 'none';
+        }
+
+        async function confirmDeleteStaff() {
+            const selectedStaff = document.getElementById('staffDropdown').value;
+            if (!selectedStaff) {
+                alert('Please select a staff member.');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to delete ${selectedStaff}?`)) return;
+
+            try {
+                const res = await fetch(`${backendBaseUrl}/delete-staff`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ staffName: selectedStaff })
+                });
+                const result = await res.json();
+                if (res.ok) {
+                    alert(result.message);
+                    loadSelectionData();
+                    closeDeleteModal();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (err) {
+                alert('Request failed: ' + err.message);
+            }
+        }
+
+        // Load jobs and staff on page load
+        async function loadSelectionData() {
+            try {
+                const [jobsRes, staffRes] = await Promise.all([
+                    fetch(`${backendBaseUrl}/get-jobs`),
+                    fetch(`${backendBaseUrl}/get-staff`)
+                ]);
+
+                const jobs = await jobsRes.json();
+                const staff = await staffRes.json();
+
+                populateCards('jobs-grid', jobs.jobs, 'job');
+                populateCards('staff-grid', staff.staff, 'staff');
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+        }
+
+        // Highlight jobs in backorder state from backend property
+        function populateCards(containerId, items, type) {
+            const container = document.getElementById(containerId);
+            console.log("Jobs for populateCards:", items);
+            container.innerHTML = items.map(item => {
+                const isAssigned = item.isAssigned ? 'assigned' : '';
+                const dataId = type === 'job' ? item.jobId : item;
+                const content = type === 'job' ? `${item.jobId}<br>${item.customer}` : item;
+                // Use backorder property from backend!
+                const backorderClass =
+                    type === 'job' &&
+                        (item.backorder === true || item.backorder === 1 || item.backorder === "1")
+                        ? 'backorder' : '';
+
+                return `
+                <div class="${type}-card ${isAssigned} ${backorderClass}" data-id="${dataId}">
+                    ${content}
+                </div>
+                `;
+            }).join('');
+
+            // Add click handlers
+            container.querySelectorAll(`.${type}-card`).forEach(card => {
+                card.addEventListener('click', () => {
+                    card.classList.toggle('selected');
+                });
+            });
+        }
+
+        // Add job search functionality
+        document.getElementById('jobSearchInput').addEventListener('input', function () {
+            const query = this.value.toLowerCase();
+            document.querySelectorAll('#jobs-grid .job-card').forEach(card => {
+                const text = card.textContent.toLowerCase();
+                card.style.display = text.includes(query) ? '' : 'none';
+            });
+        });
+
+        // Handle assignment
+        async function assignSelected() {
+            const selectedJobs = Array.from(document.querySelectorAll('.job-card.selected'))
+                .map(card => card.dataset.id);
+
+            const selectedStaff = Array.from(document.querySelectorAll('.staff-card.selected'))
+                .map(card => card.textContent.trim());
+
+            if (selectedJobs.length === 0 || selectedStaff.length === 0) {
+                alert('Please select at least one job and one staff member');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${backendBaseUrl}/allocate-jobs`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        jobIds: selectedJobs,
+                        staffNames: selectedStaff
+                    })
+                });
+
+                if (response.ok) {
+                    alert('Successfully assigned jobs!');
+                    // Highlight assigned job cards
+                    selectedJobs.forEach(jobId => {
+                        const card = document.querySelector(`.job-card[data-id="${jobId}"]`);
+                        if (card) {
+                            card.classList.add('assigned');
+                        }
+                    });
+                    // Clear selection
+                    document.querySelectorAll('.selected').forEach(card =>
+                        card.classList.remove('selected'));
+                } else {
+                    throw new Error('Assignment failed');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error assigning jobs');
+            }
+        }
+
+        // Call this on page load
+        document.addEventListener('DOMContentLoaded', loadSelectionData);
+    </script>
+</body>
+
+</html>

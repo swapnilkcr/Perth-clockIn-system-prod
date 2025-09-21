@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="add_job.css">
+	<title>PN table</title>
+	<link rel="icon" href="./logo.JPG" type="image/x-icon">
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+	<script src="clock.js"></script>
+	<script>
+
+
+		function highlightField(id) {
+			const el = document.getElementById(id);
+			if (!el) return;
+
+			el.classList.add('highlighted');
+
+			// Remove the class after animation ends so it can be triggered again later
+			setTimeout(() => {
+				el.classList.remove('highlighted');
+			}, 1500);
+		}
+
+
+		// Function to fetch all related data by Drawing Number
+
+		// Function to auto-fill CDraw from DrawingNo
+		function autoFillCDraw() {
+			var drawingNoValue = document.getElementById("draw-no").value;
+			document.getElementById("CDraw").value = drawingNoValue;  // Set CDraw value to DrawingNo
+			highlightField("CDraw");
+		}
+
+		// Function to auto-fill CCells from BatteryName
+		function autoFillCCells() {
+			var batteryName = document.getElementById("no-cell").value;
+			document.getElementById("CCells").value = batteryName;
+			highlightField("CCells");
+		}
+
+		// Function to auto-fill C-AV from AV
+		function autoFillCav() {
+			var cavValue = document.getElementById("av").value;
+			document.getElementById("Cav").value = cavValue;
+			highlightField("Cav");
+		}
+
+		// Function to auto-fill C-B$ from B$
+		function autoFillCB$() {
+			var bDollar = document.getElementById("b-price").value;
+			document.getElementById("CB$").value = bDollar;
+			highlightField("CB$");
+		}
+
+		// Function to auto-fill C-S$ from S$
+		function autoFillCS$() {
+			var sDollar = document.getElementById("s-price").value;
+			document.getElementById("CS$").value = sDollar;
+			highlightField("CS$");
+		}
+
+		// Function to auto-fill StockCode
+		function autoFillStockCode() {
+			var stockCode = document.getElementById('stock-code').value;
+			document.getElementById('CSTcode').value = stockCode;
+			highlightField("CSTcode");
+		}
+
+
+		// Function to get current input date
+		window.onload = function () {
+			var today = new Date();
+			var dd = today.getDate();
+			var mm = today.getMonth() + 1; // January is 0!
+			var yyyy = today.getFullYear();
+
+			// Format the date to YYYY-MM-DD
+			if (dd < 10) {
+				dd = '0' + dd;
+			}
+			if (mm < 10) {
+				mm = '0' + mm;
+			}
+
+			today = yyyy + '-' + mm + '-' + dd;
+
+			// Set the value of the input to today's date
+			document.getElementById("inputDate").value = today;
+		};
+
+		// Function to calculate WH (Watt-Hours)
+		function calculateWH() {
+			// Get the values of Volts and Ah
+			var volts = parseFloat(document.getElementById("Volts").value);
+			var ah = parseFloat(document.getElementById("ah").value);
+
+			// Calculate WH (Volts * Ah)
+			if (!isNaN(volts) && !isNaN(ah)) {
+				var wh = volts * ah;  // Multiply Volts and Ah
+				document.getElementById("wh").value = wh.toFixed(2);  // Display result in the WH input field
+			} else {
+				document.getElementById("wh").value = "";  // Clear WH if inputs are invalid
+			}
+		}
+
+		document.addEventListener('DOMContentLoaded', function () {
+			document.querySelector("form").addEventListener("keydown", function (event) {
+				if (event.key === "Enter") {
+					event.preventDefault();
+				}
+			});
+			document.getElementById('jobForm').addEventListener('submit', async function (e) {
+				e.preventDefault();
+
+
+
+
+
+				const formData = {
+					pn: document.getElementById('pn').value,
+					noCell: document.getElementById('no-cell').value,
+					drawNo: document.getElementById('draw-no').value,
+					reqDate: document.getElementById('requ-date').value,
+					cust: document.getElementById('cust').value,
+					stockCode: document.getElementById('stock-code').value,
+					qty: parseFloat(document.getElementById('qty').value),
+					cellCode: document.getElementById('cell-code').value,
+					bPrice: parseFloat(document.getElementById('b-price').value),
+					orderNo: document.getElementById('order-no').value,
+					model: document.getElementById('model').value,
+					vol: parseFloat(document.getElementById('Volts').value),
+					ah: parseFloat(document.getElementById('ah').value),
+					wh: parseFloat(document.getElementById('wh').value),
+					chem: document.getElementById('chem').value,
+					structure: document.getElementById('structure').value,
+					staff: document.getElementById('staff').value,
+					workhr: parseFloat(document.getElementById('workhr').value),
+					HRPP: parseFloat(document.getElementById('HRPP').value),
+					endDate: document.getElementById('endDate').value,
+					testTime: parseFloat(document.getElementById('testTime').value),
+					av: parseFloat(document.getElementById('av').value),
+					sPrice: parseFloat(document.getElementById('s-price').value),
+					discount: parseFloat(document.getElementById('discount').value),
+					salesman: document.getElementById('salesman').value,
+					customerCode: document.getElementById('customer-code').value,
+					orderDate: document.getElementById('orderDate').value,
+					planReadyDate: document.getElementById('planReadyDate').value
+				};
+
+				formData.excludeSaveTime = document.getElementById('excludeSaveTime').checked;
+
+
+				try {
+					const response = await fetch(`${backendBaseUrl}/add_job`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify(formData)
+					});
+
+					const data = await response.json();
+
+					if (response.ok) {
+						alert(data.message || 'Job added successfully.');
+						document.getElementById('jobForm').reset();
+						clearGreenHighlights();
+					} else {
+						alert(data.error || 'An error occurred while adding the job.');
+					}
+				} catch (error) {
+					console.error('Error submitting the form:', error);
+					alert('An error occurred while submitting the form. Please try again.');
+				}
+			});
+
+
+			function fetchByDrawingNumber(drawingNo) {
+				fetch(`${backendBaseUrl}/get-job-data-by-drawing?Drawing_Number=${encodeURIComponent(drawingNo)}`)
+					.then(response => response.json())
+					.then(data => {
+						if (data.success) {
+							if (data.csvData.AVERAGE_TIME) {
+								document.getElementById('av').value = data.csvData.AVERAGE_TIME.toFixed(2);
+								highlightGreenField('av');
+								autoFillCav();
+							}
+							if (data.csvData.B_PRICE) {
+								document.getElementById('b-price').value = data.csvData.B_PRICE;
+								highlightGreenField('b-price');
+								autoFillCB$();
+							}
+							if (data.csvData.S_PRICE) {
+								document.getElementById('s-price').value = data.csvData.S_PRICE;
+								highlightGreenField('s-price');
+								autoFillCS$();
+							}
+
+							if (data.stockCode) {
+								document.getElementById('stock-code').value = data.stockCode;
+								highlightGreenField('stock-code');
+								autoFillStockCode();
+							}
+
+							if (data.cellsParts) {
+								document.getElementById('no-cell').value = data.cellsParts;
+								highlightGreenField('no-cell');
+								autoFillStockCode();
+							}
+
+							if (data.model) {
+								document.getElementById('model').value = data.model;
+								highlightGreenField('model');
+								autoFillStockCode();
+							}
+
+							// Show fetch confirmation message
+							const msg = document.getElementById('draw-fetch-msg');
+							msg.style.display = 'block';
+							setTimeout(() => { msg.style.display = 'none'; }, 3000);
+						}
+					})
+					.catch(error => console.error('Error fetching by Drawing Number:', error));
+			}
+
+
+			function highlightGreenField(id) {
+				const el = document.getElementById(id);
+				if (!el) return;
+				el.classList.add('highlighted-green');
+			}
+
+			function clearGreenHighlights() {
+				document.querySelectorAll('.highlighted-green').forEach(el => {
+					el.classList.remove('highlighted-green');
+				});
+			}
+
+			// Add event listener
+			document.getElementById('draw-no').addEventListener('input', function (e) {
+				if (e.target.value.length > 3) {
+					fetchByDrawingNumber(e.target.value);
+				}
+			});
+
+
+			document.getElementById('pn').addEventListener('change', function () {
+				const scannedJobId = this.value.trim();
+				if (scannedJobId) {
+					console.log("🎯 Scanned JobID:", scannedJobId);
+
+					// ✅ Show a confirmation message below
+					const msg = document.getElementById('scanMessage');
+					msg.textContent = "Scanned JobID: " + scannedJobId;
+					msg.style.color = "green";
+				}
+			});
+
+		});
+
+
+
+	</script>
+</head>
+
+<body>
+	<div class="header">
+		<header>MASTER INSTRUMENTS</header>
+	</div>
+
+	<div class="topnav">
+		<a href="SampleAVTimeList.xlsx">AVTimeList</a>
+	</div>
+	<fieldset class="form-section">
+		<div class="form1">
+			<header class="page-header">PN DATA</header>
+			<form id="jobForm">
+
+
+				<div class="form-group">
+					<label for="inputDate">INPUT DATE</label>
+					<input type="date" id="inputDate">
+				</div>
+
+
+
+
+				<div class="form-group">
+					<label for="pn">Production Number</label>
+					<input type="text" name="ProductionNumber" id="pn"
+						placeholder="Scan or enter Production Number (PN)" required autofocus>
+				</div>
+
+
+				<div class="form-check mb-3">
+					<div class="checkbox1">
+						<input class="form-check-input" type="checkbox" id="excludeSaveTime">
+						<label class="form-check-label fw-semibold text-primary" for="excludeSaveTime">
+							NEW PACK <small class="text-muted">(Exclude Save Time)</small>
+						</label>
+					</div>
+				</div>
+
+
+				<div class="form-group">
+					<label for="draw-no">Drawing Number</label>
+					<input type="text" name="DrawingNo" id="draw-no" placeholder="Enter DrawingNo"
+						oninput="autoFillCDraw()">
+					<div id="draw-fetch-msg" class="fetch-msg" style="display: none;">Data auto-filled from Drawing
+						Number.</div>
+
+
+				</div>
+
+				<div class="form-group production-ready-date">
+					<label for="productionReadyDate">Production Ready Date</label>
+					<input type="date" id="productionReadyDate">
+				</div>
+
+				<div class="form-group plan-ready-date hidden">
+					<label for="planReadyDate">Plan Ready Date</label>
+					<input type="date" id="planReadyDate">
+				</div>
+
+
+
+				<div class="form-group">
+					<label for="no-cell">No/Cell</label>
+					<input type="text" name="BatteryName" id="no-cell" placeholder="Enter BatteryName"
+						oninput="autoFillCCells()">
+				</div>
+
+
+
+				<div class="form-group">
+					<label for="requ-date">Required Date</label>
+					<input type="date" id="requ-date">
+				</div>
+
+				<div class="form-group">
+					<label for="cust">Customer</label>
+					<input type="text" name="cust" id="cust" placeholder="Enter customer name">
+				</div>
+
+				<div class="form-group">
+					<label for="stock-code">Stock code</label>
+					<input type="text" id="stock-code" placeholder="Enter StockCode" oninput="autoFillStockCode()">
+				</div>
+
+				<div class="form-group">
+					<label for="qty">Quantity</label>
+					<input type="number" id="qty" placeholder="Enter Quantity">
+				</div>
+
+				<div class="form-group hidden">
+					<label for="cell-code">Cell code</label>
+					<input type="text" id="cell-code" placeholder="Enter cellcode">
+				</div>
+
+				<div class="form-group">
+					<label for="b-price">B$</label>
+					<input type="number" id="b-price" step="0.01" oninput="autoFillCB$()">
+				</div>
+
+				<div class="form-group">
+					<label for="order-no">Order no</label>
+					<input type="number" id="order-no" placeholder="Enter Order number">
+				</div>
+
+				<div class="form-group">
+					<label for="model">Model</label>
+					<input type="text" name="Model" id="model">
+				</div>
+
+				<div class="form-group">
+					<label for="Volts">Volts</label>
+					<input type="number" id="Volts" step="0.01" oninput="calculateWH()" placeholder="Enter Volts">
+				</div>
+
+				<div class="form-group">
+					<label for="ah">AH</label>
+					<input type="number" id="ah" step="0.01" oninput="calculateWH()" placeholder="Enter Ah value">
+				</div>
+
+				<div class="form-group">
+					<label for="wh">WH</label>
+					<input type="number" id="wh" placeholder="Watt-Hours" readonly>
+				</div>
+
+				<div class="form-group">
+					<label for="chem">CHEM</label>
+					<input type="text" id="chem" placeholder="Enter CHEM">
+				</div>
+
+				<div class="form-group">
+					<label for="structure">Structure</label>
+					<input type="text" name="structure" id="structure">
+				</div>
+
+				<div class="form-group hidden">
+					<label for="staff">Staff</label>
+					<input type="text" id="staff">
+				</div>
+
+				<div class="form-group hidden">
+					<label for="workhr">Work HR</label>
+					<input type="text" id="workhr">
+				</div>
+
+				<div class="form-group hidden">
+					<label for="HRPP">HR/PP</label>
+					<input type="text" id="HRPP">
+				</div>
+
+				<div class="form-group hidden">
+					<label for="endDate">End Date</label>
+					<input type="date" id="endDate">
+				</div>
+
+				<div class="form-group hidden">
+					<label for="testTime">TEST TIME</label>
+					<input type="text" id="testTime">
+				</div>
+
+				<div class="form-group">
+					<label for="av">AV</label>
+					<input type="number" id="av" step="0.01" oninput="autoFillCav()">
+				</div>
+
+				<div class="form-group">
+					<label for="s-price">S$</label>
+					<input type="number" id="s-price" step="0.01" oninput="autoFillCS$()" placeholder="Enter S$">
+				</div>
+
+				<div class="form-group hidden">
+					<label for="CDraw">CDraw</label>
+					<input type="text" id="CDraw" placeholder="Auto-filled from DrawingNo" readonly>
+				</div>
+
+				<div class="form-group hidden">
+					<label for="CCells">C-cells</label>
+					<input type="text" id="CCells" placeholder="Auto-filled from No/cells" readonly>
+				</div>
+
+				<div class="form-group hidden">
+					<label for="Cav">C-AV</label>
+					<input type="number" id="Cav" placeholder="Auto-filled from AV" step="0.01" readonly>
+				</div>
+
+				<div class="form-group hidden">
+					<label for="CB$">C-B$</label>
+					<input type="number" id="CB$" placeholder="Auto-filled from B$" step="0.01" readonly>
+				</div>
+
+				<div class="form-group hidden">
+					<label for="CS$">C-S$</label>
+					<input type="number" id="CS$" placeholder="Auto-filled from S$" step="0.01" readonly>
+				</div>
+
+				<div class="form-group hidden">
+					<label for="CSTcode">C-STCode</label>
+					<input type="text" id="CSTcode" placeholder="Auto-filled from StockCode">
+				</div>
+
+				<div class="form-group hidden">
+					<label for="discount">Discount</label>
+					<input type="text" id="discount" step="0.01">
+				</div>
+
+				<div class="form-group">
+					<label for="salesman">Salesman</label>
+					<input type="text" id="salesman">
+				</div>
+
+				<div class="form-group hidden">
+					<label for="customer-code">Customer Code</label>
+					<input type="text" id="customer-code">
+				</div>
+
+				<div class="form-group">
+					<label for="orderDate">Order Date</label>
+					<input type="date" id="orderDate">
+				</div>
+
+				<button type="submit" id="submitButton">Submit</button>
+			</form>
+		</div>
+	</fieldset>
+
+	</div>
+	<div class="footer">
+		<p>&copy; 2024 Master Instruments. All rights reserved.</p>
+	</div>
+</body>
+
+</html>

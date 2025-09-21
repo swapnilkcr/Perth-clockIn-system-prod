@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Finished Jobs</title>
+  <link rel="icon" href="./logo.JPG" type="image/x-icon">
+  <link rel="stylesheet" href="Style.css">
+  <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      text-align: center;
+    }
+
+    th {
+      color: black !important;
+    }
+
+
+
+    .filter-container1 {
+      margin: 20px 0;
+    }
+
+    #custName {
+      padding: 10px !important;
+      width: 300px;
+      font-size: 15px !important;
+      border: 2px solid #333;
+      border-radius: 5px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      margin-top: 20px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      border-radius: 10px;
+      overflow: hidden;
+
+    }
+
+    th,
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
+      text-align: center;
+    }
+
+    th {
+      background: #003865;
+      color: #ffffff;
+      font-weight: bold;
+      text-transform: uppercase;
+      font-size: 13px;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+
+    .pagination {
+      margin: 20px 0;
+    }
+
+    .pagination button {
+      padding: 10px;
+      margin: 5px;
+      border: none;
+      background: #333;
+      color: white;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    .pagination button:disabled {
+      background: gray;
+      cursor: not-allowed;
+    }
+
+    .filter-container1 {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+    }
+
+    #filterType {
+      padding: 8px;
+      border-radius: 5px;
+    }
+
+
+    header.finished_jobs {
+      font-size: 20px !important;
+      font-weight: 600;
+      padding: 20px;
+      text-align: center;
+      /* ✅ center the text */
+      display: flex;
+      /* ✅ center using flexbox */
+
+      align-items: center;
+    }
+
+    .navb {
+      background: white;
+      display: flex;
+      padding: 10px;
+
+
+    }
+
+    .navb a {
+      color: black;
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .navb a:hover {
+      color: orange;
+    }
+
+    .finished_jobs a {
+      font-size: 20px !important;
+    }
+
+    h1.h1 {
+      font-size: 20px;
+    }
+
+    div#finished-jobs-container {
+      overflow: auto;
+    }
+
+    .pagination {
+      margin: 20px 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .pagination button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+
+    .pagination button:disabled {
+      background-color: #6c757d;
+      cursor: not-allowed;
+    }
+
+    #pageNumber {
+      font-weight: bold;
+      min-width: 100px;
+      text-align: center;
+    }
+
+
+    .search-export-bar {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin: 20px auto;
+      flex-wrap: wrap;
+    }
+
+    .search-input {
+      padding: 10px;
+      width: 300px;
+      font-size: 16px;
+      border: 2px solid #007bff;
+      border-radius: 6px;
+    }
+
+    .export-btn {
+      padding: 10px 20px;
+      background-color: #28a745;
+      color: white;
+      font-size: 15px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .export-btn:hover {
+      background-color: #218838;
+    }
+  </style>
+</head>
+
+<body>
+  <header class="finished_jobs">
+    <img src="logo-minew.png" alt="" class="imglogo">
+    <h1 class="h1">Finished Jobs</h1>
+  </header>
+  <div class="navb">
+    <a href="layout.html"> HOME</a>
+  </div>
+  <div class="search-export-bar">
+    <input type="text" id="custName" class="search-input" placeholder="🔍 Search by Customer Name..."
+      onkeyup="searchByCustName()">
+    <button onclick="exportToExcel()" class="export-btn">
+      ⬇️ Download Excel
+    </button>
+  </div>
+
+
+  </div>
+
+  <div id="finished-jobs-container">
+    <table id="jobsTable">
+    </table>
+  </div>
+  <div class="pagination">
+    <button id="prevPage" onclick="prevPage()">Previous</button>
+    <span id="pageNumber">Page 1</span>
+    <button id="nextPage" onclick="nextFinishedPage()">Next</button>
+  </div>
+
+  <script src="clock.js"></script>
+  <script>
+
+    const pageSize = 10; // Items per page
+    let totalPages = 1;
+    //const searchTerm = document.getElementById("custName").value.trim();
+
+
+    document.addEventListener("DOMContentLoaded", function () {
+      fetchFinishedJobs();
+    });
+
+
+
+    function fetchFinishedJobs() {
+      const searchTerm = document.getElementById("custName").value.trim(); // ✅ this reads input
+      const url = `${backendBaseUrl}/view-finished-jobs?page=${currentPage}&page_size=${pageSize}`
+        + (searchTerm ? `&custName=${encodeURIComponent(searchTerm)}` : ''); // ✅ this appends search
+
+      fetch(url)
+        .then(response => response.json())
+        .then(data => {
+          console.log('Finished Jobs Data:', data);
+          renderTable(data);
+          updatePaginationControls(data);
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          document.getElementById('finished-jobs-container').innerHTML = '<p>Error loading finished jobs.</p>';
+        });
+    }
+
+
+    function renderTable(data) {
+      const container = document.getElementById('finished-jobs-container');
+      container.innerHTML = '';
+
+      if (data.jobs && data.jobs.length > 0) {
+        const table = document.createElement('table');
+        table.className = 'finished-jobs-table';
+
+        // Table headers
+        const thead = document.createElement('thead');
+        let columns = Object.keys(data.jobs[0]);
+
+        // Remove "EXCLUDE_SAVE_TIME" from visible columns
+        columns = columns.filter(col => col !== "EXCLUDE_SAVE_TIME");
+
+        // Move "PRODUCTION READY DATE" next to "INPUT DATE"
+        const inputIndex = columns.indexOf("INPUT DATE");
+        const prodReadyIndex = columns.indexOf("PRODUCTION READY DATE");
+        const planReadyIndex = columns.indexOf("PLAN READY DATE");
+
+        if (inputIndex !== -1 && prodReadyIndex !== -1) {
+          const [prodReadyCol] = columns.splice(prodReadyIndex, 1);
+          columns.splice(inputIndex + 1, 0, prodReadyCol);
+        }
+
+        if (columns.indexOf("PRODUCTION READY DATE") !== -1 && planReadyIndex !== -1) {
+          const [planReadyCol] = columns.splice(planReadyIndex, 1);
+          const prodIndexNow = columns.indexOf("PRODUCTION READY DATE");
+          columns.splice(prodIndexNow + 1, 0, planReadyCol);
+        }
+
+        thead.innerHTML = `<tr>${columns.map(col => {
+          let displayName = (col === "PLAN READY DATE") ? "PARTS READY DATE" : col;
+          return `<th>${displayName}</th>`;
+        }).join('')}</tr>`;
+
+
+        table.appendChild(thead);
+
+        // Table body
+        const tbody = document.createElement('tbody');
+        data.jobs.forEach(job => {
+          const row = document.createElement('tr');
+          row.innerHTML = columns.map(col => {
+            const value = job[col];
+            return `<td>${(value === null || value === 'null') ? '' : value}</td>`;
+          }).join('');
+
+          tbody.appendChild(row);
+        });
+        table.appendChild(tbody);
+
+        container.appendChild(table);
+      } else {
+        container.innerHTML = '<p>No finished jobs found.</p>';
+      }
+    }
+    function updatePaginationControls(data) {
+      totalPages = data.total_pages || 1;
+      document.getElementById('pageNumber').textContent =
+        `Page ${currentPage} of ${totalPages}`;
+
+      document.getElementById('prevPage').disabled = currentPage === 1;
+      document.getElementById('nextPage').disabled = currentPage >= totalPages;
+    }
+
+    function nextFinishedPage() {
+      if (currentPage < totalPages) {
+        currentPage++;
+        fetchFinishedJobs();
+      }
+    }
+
+    function prevPage() {
+      if (currentPage > 1) {
+        currentPage--;
+        fetchFinishedJobs();
+      }
+    }
+    function searchByCustName() {
+      currentPage = 1; // Reset to page 1
+      fetchFinishedJobs();
+    }
+
+
+    function exportToExcel() {
+      // Get all pages of data (not just the current page)
+      const searchTerm = document.getElementById("custName").value.trim();
+      const url = `${backendBaseUrl}/view-finished-jobs?page=1&page_size=10000` +
+        (searchTerm ? `&custName=${encodeURIComponent(searchTerm)}` : '');
+
+      fetch(url)
+        .then(response => response.json())
+        .then(data => {
+          if (data.jobs && data.jobs.length > 0) {
+            // Define which columns you want to include in the export
+            const columnsToInclude = [
+              'INPUT DATE',
+              'PRODUCTION READY DATE',
+              'PN',
+              'DRAW NO',
+              'REQU-DATE',
+              'CUST',
+              'STOCK CODE',
+              'QTY',
+              'B$',
+              'STAFF',
+              'END DATE',
+              'AV',
+              'SALESMAN',
+              'Order Date',
+              'EstimatedTime',
+              'TotalHoursWorked',
+              // Add or remove columns as needed
+            ];
+
+            // Filter the data to only include selected columns
+            const filteredData = data.jobs.map(job => {
+              const filteredJob = {};
+              columnsToInclude.forEach(col => {
+                let value = job[col] === null || job[col] === 'null' ? '' : job[col];
+                // Rename in Excel export
+                const exportCol = (col === 'PLAN READY DATE') ? 'PARTS READY DATE' : col;
+                filteredJob[exportCol] = value;
+              });
+              return filteredJob;
+            });
+
+            // Convert filtered data to Excel
+            const ws = XLSX.utils.json_to_sheet(filteredData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "FinishedJobs");
+
+            // Generate Excel file and trigger download
+            XLSX.writeFile(wb, "FinishedJobs.xlsx");
+          } else {
+            alert("No data to export");
+          }
+        })
+        .catch(error => {
+          console.error('Export error:', error);
+          alert("Error exporting data");
+        });
+    }
+
+  </script>
+
+</body>
+
+</html>

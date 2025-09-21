@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <title>Create PDF with Multiple Images</title>
+  <link rel="stylesheet" href="Ftopdf.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <header class="hdr">
+    <div class="headr">Master Instruments</div>
+  </header>
+  <div class="navbar">
+    <a href="layout.html">Back to Home</a>
+  </div>
+
+  <!-- Simple Form -->
+  <form id="dataForm">
+    <label for="Pno">Production number:</label><br>
+    <input type="text" id="Pno" name="Pno" required><br><br>
+    
+    <label for="Dno">Drawing Number:</label><br>
+    <input type="text" id="Dno" name="Dno" required><br><br>
+
+    <!-- Multiple Image Upload -->
+    <label for="imageUpload">Upload Images:</label><br>
+    <input type="file" id="imageUpload" name="images" accept="image/*" multiple><br><br>
+
+    <!-- Image Preview Container -->
+    <div id="imagePreview"></div>
+    <button class="btn"><i class="fa fa-download"></i> Download</button>
+    <button type="button" id="deleteSelected">Delete Selected</button>
+  </form>
+  
+  <script>
+    const form = document.getElementById('dataForm');
+    const imageInput = document.getElementById('imageUpload');
+    const imagePreview = document.getElementById('imagePreview');
+    const deleteSelectedBtn = document.getElementById('deleteSelected');
+    let selectedImages = [];
+
+function compressImage(base64Str, maxWidth = 800, quality = 1.0) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.src = base64Str;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const scale = maxWidth / img.width;
+      canvas.width = maxWidth;
+      canvas.height = img.height * scale;
+
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const compressed = canvas.toDataURL('image/jpeg', quality);  // ✅ JPEG saves space
+      resolve(compressed);
+    };
+  });
+}
+
+
+    function renderPreviews() {
+      imagePreview.innerHTML = '';
+
+      selectedImages.forEach((imgSrc, index) => {
+        const container = document.createElement('div');
+        container.className = 'image-container';
+        container.draggable = true;
+        container.dataset.index = index;
+        container.style.display = 'inline-block';
+        container.style.margin = '10px';
+        container.style.border = '1px solid #ccc';
+        container.style.padding = '5px';
+        container.style.position = 'relative';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'select-checkbox';
+        checkbox.style.position = 'absolute';
+        checkbox.style.top = '5px';
+        checkbox.style.left = '5px';
+
+        const img = document.createElement('img');
+        img.src = imgSrc;
+        img.style.width = '150px';
+        img.style.display = 'block';
+
+        container.addEventListener('dragstart', (e) => {
+          e.dataTransfer.setData('text/plain', index);
+          container.style.opacity = '0.5';
+        });
+
+        container.addEventListener('dragend', () => {
+          container.style.opacity = '1';
+        });
+
+        container.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          container.style.border = '2px dashed #000';
+        });
+
+        container.addEventListener('dragleave', () => {
+          container.style.border = '1px solid #ccc';
+        });
+
+        container.addEventListener('drop', (e) => {
+          e.preventDefault();
+          container.style.border = '1px solid #ccc';
+
+          const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+          const toIndex = parseInt(container.dataset.index);
+
+          if (fromIndex !== toIndex) {
+            const movedImage = selectedImages.splice(fromIndex, 1)[0];
+            selectedImages.splice(toIndex, 0, movedImage);
+            renderPreviews();
+          }
+        });
+
+        container.appendChild(checkbox);
+        container.appendChild(img);
+        imagePreview.appendChild(container);
+      });
+    }
+
+    imageInput.addEventListener('change', function(e) {
+      const files = e.target.files;
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = async function(event) {
+        const compressed = await compressImage(event.target.result);
+        selectedImages.push(compressed);
+        renderPreviews();
+      };
+
+        reader.readAsDataURL(file);
+      });
+      imageInput.value = '';
+    });
+
+    deleteSelectedBtn.addEventListener('click', () => {
+      const checkboxes = document.querySelectorAll('.select-checkbox');
+      selectedImages = selectedImages.filter((_, i) => !checkboxes[i].checked);
+      renderPreviews();
+    });
+
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const Pno = document.getElementById('Pno').value;
+      const Dno = document.getElementById('Dno').value;
+      createPDF(Pno, Dno, selectedImages);
+    });
+
+function createPDF(Pno, Dno, images) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  doc.text(`Production Number: ${Pno}`, 10, 10);
+  doc.text(`Drawing Number: ${Dno}`, 10, 20);
+
+  let imagesProcessed = 0;
+
+  images.forEach((imgData, index) => {
+    const img = new Image();
+    img.src = imgData;
+
+    img.onload = () => {
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+
+      let imgWidth = img.width * 0.2645; // convert from px to mm (approx)
+      let imgHeight = img.height * 0.2645;
+
+      // Fit within PDF page margins (with 10mm padding)
+      const maxWidth = pageWidth - 20;
+      const maxHeight = pageHeight - 40;
+
+      const widthRatio = maxWidth / imgWidth;
+      const heightRatio = maxHeight / imgHeight;
+      const scale = Math.min(widthRatio, heightRatio, 1); // Don't upscale
+
+      imgWidth *= scale;
+      imgHeight *= scale;
+
+      if (index > 0) doc.addPage();
+      const scaleFactor = 0.8;
+      doc.addImage(
+        imgData,
+        'JPEG',
+        10,
+        30,
+        imgWidth,
+        imgHeight
+      );
+
+
+      imagesProcessed++;
+      if (imagesProcessed === images.length) {
+        const sanitizedPno = Pno.replace(/[\\\/:*?"<>|]/g, '_');
+        doc.save(`${sanitizedPno}.pdf`);
+      }
+    };
+  });
+}
+
+  </script>
+
+  <footer class="footer1">
+    <div class="footer-content">
+      <p>&copy;Master Instruments. All rights reserved.</p>
+    </div>
+  </footer>
+</body>
+</html>

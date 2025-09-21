@@ -1,0 +1,270 @@
+/* Reset and Base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', sans-serif;
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: url('mi_perth.jpg') no-repeat center center fixed;
+  background-size: cover;
+  color: #333;
+  padding-bottom: 80px; /* Space for fixed footer */
+}
+
+/* Header */
+.header {
+  width: 100%;
+}
+header {
+  background-color: #003865;
+  padding: 20px;
+  color: white;
+  text-align: center;
+  font-weight: bold;
+  font-size: 1.4rem;
+}
+
+/* Navigation */
+.topnav {
+  width: 100%;
+  background-color: white;
+  text-align: right;
+  padding: 10px 20px;
+}
+
+.topnav a {
+  color: black;
+  font-weight: bold;
+  text-decoration: none;
+  margin-left: 10px;
+}
+
+.topnav a:hover {
+  color: aqua;
+}
+
+/* Form Container */
+.form1 {
+  background-color: white;
+  width: 90%;
+  max-width: 1000px;
+  margin: 40px auto;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid #ccc;
+  overflow-y: auto;
+}
+
+.page-header {
+
+  font-size: 1.6rem;
+  margin-bottom: 20px;
+  text-align: center;
+  font-weight: bold;
+}
+
+/* Form Styling */
+form {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 15px;
+}
+
+label {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="date"] {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.3s ease;
+}
+
+input:focus {
+  border-color: #003865;
+  outline: none;
+}
+
+input[readonly] {
+  background-color: #f5f5f5;
+  color: #666;
+}
+
+/* Submit Button */
+button {
+  grid-column: span 2;
+  padding: 12px;
+  background-color: #003865;
+  color: white;
+  font-size: 1rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-top: 20px;
+  grid-column:2;
+  width:100%;
+  border-radius: 10px !important;
+}
+
+button:hover {
+  background-color: #00509e;
+}
+
+/* Footer */
+.footer {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  height: 45px;
+  background-color: white;
+  color: gray;
+  text-align: center;
+  padding-top: 12px;
+  font-weight: 600;
+  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+}
+
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.full-width {
+  grid-column: span 2;
+}
+
+.form-section {
+  width: 80%;
+  border: 1px solid #ccc;
+  padding: 20px;
+  border-radius: 8px;
+  background-color: #fdfdfd;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.form-section legend {
+  font-weight: bold;
+  padding: 0 10px;
+  color: #003865;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  font-weight: 600;
+  margin-bottom: 5px;
+  font-size: 0.95rem;
+}
+
+input, select {
+  padding: 8px 10px;
+  font-size: 0.95rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+button {
+  background-color: #003865;
+  color: white;
+  padding: 12px 20px;
+  font-size: 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  border: none;
+  width: 100%;
+  margin-top: 20px;
+}
+
+button:hover {
+  background-color: #00509e;
+}
+
+@keyframes highlight {
+  0%   { background-color: #ffffcc; }
+  100% { background-color: white; }
+}
+
+.highlighted {
+  animation: highlight 1.5s ease;
+}
+
+.draw-hint {
+  font-size: 0.85rem;
+  color: #0073e6;
+  margin-top: 4px;
+  font-style: italic;
+  transition: opacity 0.3s ease;
+}
+
+
+/* Yellow for manual autofill (e.g., from AV input) */
+.highlighted {
+  animation: highlightYellow 1.5s ease;
+}
+
+@keyframes highlightYellow {
+  0% { background-color: #ffffcc; }
+  100% { background-color: white; }
+}
+
+/* Green for data fetched via Drawing Number */
+.highlighted-green {
+  background-color: lightgreen
+}
+
+
+/* Message box */
+.fetch-msg {
+  background-color: #e6f7ff;
+  color: #00529b;
+  border: 1px solid #91d5ff;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  margin-top: -10px;
+  margin-bottom: 10px;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hidden {
+  display:none;
+}
+/*
+.exclude{
+  display: none;
+}
+  */
+
+  .checkbox1 {
+    margin-top: 35px;
+}
+
+.production-ready-date{
+  display: none;
+}

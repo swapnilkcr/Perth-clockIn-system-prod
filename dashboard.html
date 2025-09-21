@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Job Dashboard</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+  <link rel="icon" href="./logo.JPG" type="image/x-icon">
+  
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="clock.js"></script>
+  <style>
+    body {
+      background: linear-gradient(45deg, silver, transparent);
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    h2.mb-4 {
+      padding: 20px;
+      background: #003865;
+      color: white;
+      width: 100%;
+    }
+
+    .widget {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      padding: 24px;
+      transition: transform 0.2s ease, box-shadow 0.3s ease;
+    }
+
+    .widget:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+    }
+
+    .widget h5 {
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: #343a40;
+    }
+
+    .TimeSummary {
+      width: 100%;
+    }
+
+    ul li {
+      margin-bottom: 0.4rem;
+    }
+
+    .container {
+      max-width: 90%;
+    }
+
+    .input-group {
+      position: relative;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: stretch;
+      width: 60%;
+      margin: auto;
+      gap: 30px;
+    }
+
+    .transition {
+      transition: transform 0.3s ease;
+    }
+
+    .rotated {
+      transform: rotate(180deg);
+    }
+
+    h2.mb-4 {
+      margin: 0px !important;
+    }
+
+    nav.navbar {
+      padding: 0px;
+    }
+
+    ul.navbar1 {
+      display: flex;
+      width: 100%;
+      flex-direction: row-reverse;
+      background: white;
+      padding: 15px;
+      list-style: none;
+      gap: 55px;
+      font-weight: 600;
+    }
+
+    .job-cards {
+      width: 25%;
+      text-align: center;
+    }
+
+    .job-cards span {
+      font-weight: 700;
+      font-size: 1.2rem;
+    }
+
+	.backorder-glow {
+      background: #CCCCFF !important;
+      /* soft red tint */
+      box-shadow: 0 0 0 2px #dc3545 inset, 0 8px 24px rgba(220, 53, 69, 0.2);
+      transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+  </style>
+</head>
+
+<body>
+  <h2 class="mb-4">
+    <img src="logo-minew.png" alt="" style="height:20px;">
+    📊 Job Dashboard</h2>
+  <nav class="navbar">
+    <ul class="navbar1">
+      <li><a href="layout.html">Home</a></li>
+      <li><a href="finished-jobs.html">Finished Jobs</a></li>
+      <li><a href="Products_test_records.html">Test Records</a></li>
+    </ul>
+  </nav>
+  <div id="job-status-summary" style="display: flex; gap: 15px; margin-bottom: 20px;">
+    <div class="job-cards" style="padding: 10px; border-radius: 8px; background: #003865; color: white;">Total Jobs:
+      <span id="total-jobs">0</span>
+    </div>
+    <div class="job-cards" style="padding: 10px; border-radius: 8px; background: #f0ad4e; color: white; cursor:pointer;"
+      onclick="fetchInProgressJobs()">
+      In Progress: <span id="in-progress">0</span>
+    </div>
+    <div class="job-cards" style="padding: 10px; border-radius: 8px; background: #5cb85c; color: white;">Completed:
+      <span id="completed">0</span>
+    </div>
+    <div class="job-cards" style="padding: 10px; border-radius: 8px; background: #d9534f; color: white;cursor:pointer;"
+      onclick="fetchNotStartedJobs()">Not Started:
+      <span id="not-started">0</span>
+    </div>
+  </div>
+
+  <div class="container mb-4">
+    <div class="input-group">
+      <input type="text" id="jobSearch" class="form-control" placeholder="Enter Job ID (PN)..." list="jobSuggestions">
+      <datalist id="jobSuggestions"></datalist>
+      <button class="btn btn-primary" onclick="searchJob()">Search</button>
+    </div>
+  </div>
+
+
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-md-6">
+        <div class="widget" id="jobOverviewCard">
+          <h5>Job Overview</h5>
+          <ul>
+            <li><strong>PN:</strong> <span id="jobId"></span></li>
+            <li><strong>Customer:</strong> <span id="customer"></span></li>
+            <li><strong>Drawing No:</strong> <span id="drawingNo"></span></li>
+            <li><strong>Stock Code:</strong> <span id="stockCode"></span></li>
+            <li><strong>Quantity:</strong> <span id="qty"></span></li>
+            <li><strong>Salesman:</strong> <span id="salesman"></span></li>
+            <li><strong>Order Date:</strong> <span id="orderDate"></span></li>
+			<li><strong>Production Ready Date:</strong>  <span id="prdDate">N/A</span></li>
+			<li><strong>Backorder:</strong> <span id="backorderText">N/A</span></li>
+            <li><strong>Status:</strong> <span id="statusBadge" class="badge bg-secondary">Unknown</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="widget">
+          <h5>Cost Summary</h5>
+          <ul>
+            <li><strong>B$:</strong> $<span id="bPrice"></span></li>
+            <li><strong>S$:</strong> $<span id="sPrice"></span></li>
+            <li><strong>Total Labor Cost:</strong> $<span id="laborCost"></span></li>
+            <li><strong>Profit:</strong> $<span id="profit"></span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="col-md-6 TimeSummary">
+        <div class="widget">
+          <h5>Time Summary</h5>
+          <ul>
+            <li><strong>Estimated Time:</strong> <span id="estimatedTime"></span> h</li>
+            <li><strong>Total Hours Worked:</strong> <span id="totalHours"></span> h</li>
+            <li><strong>Remaining Time:</strong> <span id="remainingTime"></span> h</li>
+            <li>
+              <strong>Progress:</strong>
+              <div class="progress mt-1">
+                <div id="progressBar" class="progress-bar bg-info" role="progressbar" style="width: 0%">0%</div>
+              </div>
+            </li>
+            <li><strong>Each Employee Hours:</strong>
+              <ul id="employeeHours" class="list-group mt-2"></ul>
+          </ul>
+          <div class="widget">
+            <h5>
+              <h5>
+                <button class="btn btn-link d-flex align-items-center" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#clockLogsCollapse" aria-expanded="false" aria-controls="clockLogsCollapse"
+                  title="Click to expand and view detailed clock-in/out logs">
+                  ⏱️ Clock-In/Out Logs
+                  <i class="bi bi-chevron-down ms-2 transition" id="logToggleIcon"></i>
+                </button>
+              </h5>
+
+            </h5>
+            <div class="collapse" id="clockLogsCollapse">
+              <table class="table table-sm table-striped">
+                <thead>
+                  <tr>
+                    <th>Staff</th>
+                    <th>Start Time</th>
+                    <th>Stop Time</th>
+                    <th>Hours</th>
+                  </tr>
+                </thead>
+                <tbody id="clockLogsBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="widget">
+          <h5>Time Distribution</h5>
+          <canvas id="timeChart"></canvas>
+        </div>
+      </div>
+
+      <div class="col-md-12">
+        <div class="widget">
+          <h5>Hours Worked per Employee</h5>
+          <canvas id="barChart" height="100"></canvas>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <!-- Add inside <body> -->
+  <!-- Bootstrap Modal -->
+  <div class="modal fade" id="notStartedModal" tabindex="-1" aria-labelledby="notStartedLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="notStartedLabel">🟥 Not Started Jobs</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <ul id="not-started-list" class="list-group">
+            <!-- Job items will be injected here -->
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- In Progress Jobs Modal -->
+  <div class="modal fade" id="inProgressModal" tabindex="-1" aria-labelledby="inProgressLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="inProgressLabel">🟨 In Progress Jobs</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <ul id="in-progress-list" class="list-group">
+            <!-- Job items will be injected here -->
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+
+  <script>
+    let timeChartInstance = null;
+    let barChartInstance = null;
+
+    async function loadJobData(jobId) {
+      try {
+        const res = await fetch(`${backendBaseUrl}/get-full-job-data?jobId=${jobId}`);
+        const data = await res.json();
+
+        const pn = data.pnData || {};
+        const work = data.workData || {};
+
+        document.getElementById('jobId').textContent = pn.pn || jobId;
+        document.getElementById('customer').textContent = pn.cust || 'N/A';
+        document.getElementById('drawingNo').textContent = pn.drawNo || 'N/A';
+        document.getElementById('stockCode').textContent = pn.stockCode || 'N/A';
+        document.getElementById('qty').textContent = pn.qty || 'N/A';
+        document.getElementById('salesman').textContent = pn.salesman || 'N/A';
+        document.getElementById('orderDate').textContent = pn.orderDate || 'N/A';
+		document.getElementById('prdDate').textContent = data.productionReadyDate || pn.productionReadyDate || 'N/A';
+
+		const jobOverview = document.getElementById('jobOverviewCard');
+        if (pn.backorder) {
+          jobOverview.classList.add('backorder-glow');
+        } else {
+          jobOverview.classList.remove('backorder-glow');
+        }
+
+		const backorderTextEl = document.getElementById('backorderText');
+        if (pn.backorder) {
+          backorderTextEl.textContent = "Yes";
+          backorderTextEl.style.color = "red";
+          backorderTextEl.style.fontWeight = "bold";
+        } else {
+          backorderTextEl.textContent = "";
+          backorderTextEl.style.color = "green";
+          backorderTextEl.style.fontWeight = "bold";
+        }
+
+        const status = work.status || "Unknown";
+        const statusBadge = document.getElementById('statusBadge');
+        statusBadge.textContent = status;
+        statusBadge.className = "badge";
+        if (status === "Completed") {
+          statusBadge.classList.add("bg-success");
+        } else if (status === "In Progress") {
+          statusBadge.classList.add("bg-warning", "text-dark");
+        } else {
+          statusBadge.classList.add("bg-danger");
+        }
+
+        const bPrice = parseFloat(pn["b$"] || 0);
+        const sPrice = parseFloat(pn["s$"] || 0);
+        const qty = parseFloat(pn.qty || 0);
+        const laborCost = parseFloat(work.totalLaborCost || 0);
+        const profit = (sPrice * qty) - laborCost - (bPrice * qty);
+
+        document.getElementById('bPrice').textContent = bPrice.toFixed(2);
+        document.getElementById('sPrice').textContent = sPrice.toFixed(2);
+        document.getElementById('laborCost').textContent = laborCost.toFixed(2);
+        document.getElementById('profit').textContent = profit.toFixed(2);
+
+        const estimated = parseFloat(work.estimatedTime || 0);
+        const worked = parseFloat(work.totalHoursWorked || 0);
+        const remaining = parseFloat(work.remainingTime || 0);
+        let percent = estimated > 0 ? Math.min((worked / estimated) * 100, 100) : 0;
+
+
+        document.getElementById('estimatedTime').textContent = estimated;
+        document.getElementById('totalHours').textContent = worked.toFixed(2);
+        document.getElementById('remainingTime').textContent = remaining;
+        const progressBar = document.getElementById('progressBar');
+        progressBar.style.width = `${percent}%`;
+        progressBar.textContent = `${percent.toFixed(0)}%`;
+
+        const empList = document.getElementById('employeeHours');
+        empList.innerHTML = '';
+        const users = work.users || [];
+        console.log("📊 Users data:", users);
+
+        users.forEach(user => {
+          if (user.hours > 0) {
+            const li = document.createElement('li');
+            li.className = 'list-group-item d-flex justify-content-between align-items-center';
+            li.innerHTML = `<span><i class="bi bi-person-fill"></i> ${user.name}</span><span class="badge bg-primary">${user.hours.toFixed(2)} h</span>`;
+            empList.appendChild(li);
+          }
+        });
+
+        if (timeChartInstance) timeChartInstance.destroy();
+        timeChartInstance = new Chart(document.getElementById('timeChart'), {
+          type: 'doughnut',
+          data: {
+            labels: ['Worked', 'Remaining'],
+            datasets: [{ data: [worked, remaining], backgroundColor: ['#198754', '#dee2e6'] }]
+          },
+          options: { plugins: { legend: { position: 'bottom' } } }
+        });
+
+        if (barChartInstance) barChartInstance.destroy();
+        const barCtx = document.getElementById("barChart").getContext("2d");
+        const maxHour = Math.max(...users.map(u => u.hours), 10);
+        barChartInstance = new Chart(barCtx, {
+          type: 'bar',
+          data: {
+            labels: users.map(u => u.name),
+            datasets: [{
+              label: 'Hours Worked',
+              data: users.map(u => u.hours),
+              backgroundColor: '#0d6efd'
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            plugins: { legend: { display: false } },
+            scales: {
+              x: {
+                title: { display: true, text: 'Hours' },
+                beginAtZero: true,
+                suggestedMax: maxHour + 10
+              },
+              y: { title: { display: true, text: 'Employee' } }
+            }
+          }
+        });
+
+
+        const clockLogsBody = document.getElementById("clockLogsBody");
+        clockLogsBody.innerHTML = "";
+        console.log("🧪 Clock Logs Received:", data.logData);
+
+        (data.logData || []).forEach(log => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${log.staffName}</td>
+            <td>${log.startTime}</td>
+            <td>${log.stopTime}</td>
+            <td>${log.hours}</td>
+          `;
+          clockLogsBody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error('Error fetching job data:', err);
+        alert('Failed to load job data');
+      }
+    }
+
+    function searchJob() {
+      const input = document.getElementById('jobSearch').value.trim();
+      const jobId = input.match(/^[^\s-]+/)[0];
+      if (!jobId) {
+        alert('Please enter a Job ID.');
+        return;
+      }
+      loadJobData(jobId);
+    }
+
+
+    async function loadJobSuggestions() {
+      try {
+        const res = await fetch(`${backendBaseUrl}/get-all-job-ids`);
+        const data = await res.json();
+        const datalist = document.getElementById("jobSuggestions");
+        datalist.innerHTML = "";
+
+        (data.suggestions || []).forEach(item => {
+          const option = document.createElement("option");
+          option.value = item.label; // shows "JOBID - Customer Name"
+          datalist.appendChild(option);
+        });
+      } catch (err) {
+        console.error("Failed to load job suggestions:", err);
+      }
+    }
+
+
+
+    loadJobData();
+    console.log("Searching for jobId:", jobId);
+
+    loadJobSuggestions();
+    function updateJobStatusSummary() {
+      fetch(`${backendBaseUrl}/get-job-status-summary`)
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('total-jobs').textContent = data.total;
+          document.getElementById('in-progress').textContent = data.inProgress;
+          document.getElementById('completed').textContent = data.completed;
+          document.getElementById('not-started').textContent = data.notStarted;
+        })
+        .catch(err => {
+          console.error('Failed to fetch job status summary:', err);
+        });
+    }
+
+    // Call on load
+    document.addEventListener('DOMContentLoaded', updateJobStatusSummary);
+
+    function fetchNotStartedJobs() {
+      const modalEl = document.getElementById('notStartedModal');
+
+      // Ensure Bootstrap resets aria-hidden and sets focus properly
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+      fetch(`${backendBaseUrl}/get-not-started-jobs`)
+        .then(res => res.json())
+        .then(data => {
+          const list = document.getElementById('not-started-list');
+          list.innerHTML = '';
+
+          if (data.jobs && data.jobs.length > 0) {
+            data.jobs.forEach(job => {
+              const li = document.createElement('li');
+              li.className = 'list-group-item d-flex justify-content-between align-items-center';
+              li.innerHTML = `
+            <span><i class="bi bi-briefcase-fill text-danger me-2"></i> Job ID: ${job.jobId}</span>
+            <span class="badge bg-secondary">${job.customer}</span>
+          `;
+              list.appendChild(li);
+            });
+          } else {
+            list.innerHTML = '<li class="list-group-item">No not started jobs found.</li>';
+          }
+
+          modal.show(); // ✅ Let Bootstrap handle accessibility and focus
+        })
+        .catch(err => {
+          alert('Error fetching not started jobs: ' + err.message);
+        });
+    }
+
+
+    async function fetchInProgressJobs() {
+      try {
+        const res = await fetch(`${backendBaseUrl}/get-in-progress-jobs`);
+        const data = await res.json();
+
+        const listContainer = document.getElementById("in-progress-list");
+        listContainer.innerHTML = '';
+
+        if (data.jobs && data.jobs.length > 0) {
+          data.jobs.forEach(job => {
+            const li = document.createElement("li");
+            li.classList.add("list-group-item");
+            li.textContent = `PN: ${job.jobId} | Customer: ${job.customerName}`;
+            listContainer.appendChild(li);
+          });
+        } else {
+          const li = document.createElement("li");
+          li.classList.add("list-group-item");
+          li.textContent = "No jobs found.";
+          listContainer.appendChild(li);
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById('inProgressModal'));
+        modal.show();
+
+      } catch (error) {
+        console.error("Error fetching in-progress jobs:", error);
+        alert("Failed to load in-progress jobs.");
+      }
+    }
+
+
+
+  </script>
+
+</body>
+
+</html>
